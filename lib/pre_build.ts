@@ -232,9 +232,7 @@ export function isInstantiated() {
 }
 
 function instantiateInstance() {
-  const wasmBytes = base64decode("${
-    base64.encode(new Uint8Array(bindgenOutput.wasmBytes))
-  }");
+  const wasmBytes = base64decode("test");
   const wasmModule = new WebAssembly.Module(wasmBytes);
   return new WebAssembly.Instance(wasmModule, imports);
 }
