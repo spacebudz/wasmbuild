@@ -150,6 +150,7 @@ async function getBindingJsOutput(
   const bodyText = await getFormattedText(`
 // source-hash: ${sourceHash}
 const require = /* #__PURE__ */ globalThis?.process?.versions?.node ? await (async () => {const { createRequire } = await import(/* webpackIgnore: true */ "https://deno.land/std@0.177.0/node/module.ts");return createRequire(import.meta.url);})() : null;
+if (globalThis?.process?.versions?.node && typeof btoa === 'undefined') {globalThis.btoa = function (str) {return Buffer.from(str, 'binary').toString('base64');}; globalThis.atob = function (b64Encoded) {return Buffer.from(b64Encoded, 'base64').toString('binary');};}
 let wasm;
 ${genText.includes("let cachedInt32Memory0") ? "" : "let cachedInt32Memory0;"}
 ${genText.includes("let cachedUint8Memory0") ? "" : "let cachedUint8Memory0;"}
