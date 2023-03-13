@@ -37,19 +37,19 @@ Deno.test("async - test works second instantiate", async () => {
   assertEquals(greet("friend"), "Hello, friend! Result: 3");
 });
 
-Deno.test("sync - test works export", () => {
-  wasmSync.instantiate();
+Deno.test("sync - test works export", async () => {
+  await wasmSync.instantiate();
   assertEquals(wasmSync.isInstantiated(), true);
   assertEquals(wasmSync.greet("Deno"), "Hello, Deno! Result: 3");
 });
 
-Deno.test("sync - test works result", () => {
-  const { greet } = wasmSync.instantiate();
+Deno.test("sync - test works result", async () => {
+  const { greet } = await wasmSync.instantiate();
   assertEquals(greet("Deno"), "Hello, Deno! Result: 3");
   assertEquals(wasmSync.instantiate(), wasmSync.instantiate());
 });
 
-Deno.test("sync - test works second instantiate", () => {
-  const { greet } = wasmSync.instantiate();
+Deno.test("sync - test works second instantiate",async () => {
+  const { greet } = await wasmSync.instantiate();
   assertEquals(greet("friend"), "Hello, friend! Result: 3");
 });

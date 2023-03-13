@@ -227,8 +227,8 @@ function getSyncLoaderText(bindgenOutput: BindgenOutput) {
  * @remarks It is safe to call this multiple times and once successfully
  * loaded it will always return a reference to the same object.
  */
-export function instantiate() {
-  return instantiateWithInstance().exports;
+export async function instantiate() {
+  return (await instantiateWithInstance()).exports;
 }
 
 let instanceWithExports;
@@ -241,9 +241,9 @@ let instanceWithExports;
  *   exports: { ${exportNames.map((n) => `${n}: typeof ${n}`).join("; ")} }
  * }}
  */
-export function instantiateWithInstance() {
+export async function instantiateWithInstance() {
   if (instanceWithExports == null) {
-    const instance = instantiateInstance();
+    const instance = await instantiateInstance();
     wasm = instance.exports;
     cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
     cachedUint8Memory0 = new Uint8Array(wasm.memory.buffer);
@@ -260,12 +260,12 @@ export function isInstantiated() {
   return instanceWithExports != null;
 }
 
-function instantiateInstance() {
+async function instantiateInstance() {
   const wasmBytes = base64decode("${
     base64.encode(new Uint8Array(bindgenOutput.wasmBytes))
   }");
-  const wasmModule = new WebAssembly.Module(wasmBytes);
-  return new WebAssembly.Instance(wasmModule, imports);
+  const wasmModule = await WebAssembly.compile(wasmBytes);
+  return WebAssembly.instantiate(wasmModule, imports);
 }
 
 function base64decode(b64) {
