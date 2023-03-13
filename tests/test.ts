@@ -49,7 +49,7 @@ Deno.test("sync - test works result", async () => {
   assertEquals(wasmSync.instantiate(), wasmSync.instantiate());
 });
 
-Deno.test("sync - test works second instantiate",async () => {
+Deno.test("sync - test works second instantiate", async () => {
   const { greet } = await wasmSync.instantiate();
   assertEquals(greet("friend"), "Hello, friend! Result: 3");
 });

@@ -111,6 +111,9 @@ const imports = {
   },
 };
 
+const require = globalThis.require || globalThis.createRequire
+  ? globalThis.createRequire(import.meta.url)
+  : null;
 /**
  * Decompression callback
  *
