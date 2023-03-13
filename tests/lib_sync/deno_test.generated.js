@@ -2,6 +2,9 @@
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
 // source-hash: 32adb27ffd08ee307b367a58fb1cfe05fd2395c4
+const require = globalThis.require || globalThis.createRequire
+  ? globalThis.createRequire(import.meta.url)
+  : null;
 let wasm;
 
 import { add } from "./snippets/deno_test-0783d0dd1a7e0cd8/add.js";
@@ -111,9 +114,6 @@ const imports = {
   },
 };
 
-const require = globalThis.require || globalThis.createRequire
-  ? globalThis.createRequire(import.meta.url)
-  : null;
 /** Instantiates an instance of the Wasm module returning its functions.
  * @remarks It is safe to call this multiple times and once successfully
  * loaded it will always return a reference to the same object.

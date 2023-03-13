@@ -149,6 +149,7 @@ async function getBindingJsOutput(
   );
   const bodyText = await getFormattedText(`
 // source-hash: ${sourceHash}
+const require = globalThis.require || globalThis.createRequire ? globalThis.createRequire(import.meta.url) : null;
 let wasm;
 ${genText.includes("let cachedInt32Memory0") ? "" : "let cachedInt32Memory0;"}
 ${genText.includes("let cachedUint8Memory0") ? "" : "let cachedUint8Memory0;"}
@@ -223,7 +224,6 @@ function getLoaderText(
 function getSyncLoaderText(bindgenOutput: BindgenOutput) {
   const exportNames = getExportNames(bindgenOutput);
   return `
-const require = globalThis.require || globalThis.createRequire ? globalThis.createRequire(import.meta.url) : null;
 /** Instantiates an instance of the Wasm module returning its functions.
  * @remarks It is safe to call this multiple times and once successfully
  * loaded it will always return a reference to the same object.
@@ -287,7 +287,6 @@ function getAsyncLoaderText(
 ) {
   const exportNames = getExportNames(bindgenOutput);
   return `
-const require = globalThis.require || globalThis.createRequire ? globalThis.createRequire(import.meta.url) : null;
 /**
  * Decompression callback
  *
