@@ -3,7 +3,6 @@
 import { BuildCommand } from "../args.ts";
 import { colors, emptyDir, ensureDir, path } from "../deps.ts";
 import { runPreBuild } from "../pre_build.ts";
-import { runWasmOpt } from "../wasmopt.ts";
 
 export async function runBuildCommand(args: BuildCommand) {
   const output = await runPreBuild(args);
@@ -17,29 +16,11 @@ export async function runBuildCommand(args: BuildCommand) {
   if (output.wasmFileName != null) {
     const wasmDest = path.join(args.outDir, output.wasmFileName);
     await Deno.writeFile(wasmDest, new Uint8Array(output.bindgen.wasmBytes));
-    if (args.isOpt) {
-      await optimizeWasmFile(wasmDest);
-    }
   }
 
   console.log(
     `${colors.bold(colors.green("Finished"))} WebAssembly output`,
   );
-
-  async function optimizeWasmFile(wasmFilePath: string) {
-    try {
-      console.log(
-        `${colors.bold(colors.green("Optimizing"))} .wasm file...`,
-      );
-      await runWasmOpt(wasmFilePath);
-    } catch (err) {
-      console.error(
-        `${colors.bold(colors.red("Error"))} ` +
-          `running wasm-opt failed. Maybe skip with --skip-opt?\n\n${err}`,
-      );
-      Deno.exit(1);
-    }
-  }
 
   async function writeSnippets() {
     const localModules = Object.entries(output.bindgen.localModules);

@@ -1,17 +1,17 @@
 // @generated file from wasmbuild -- do not edit
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
-// source-hash: 7c139afefaada2ae5a0d72c39a87a6a25765b19b
+// source-hash: 32adb27ffd08ee307b367a58fb1cfe05fd2395c4
 let wasm;
 
 import { add } from "./snippets/deno_test-0783d0dd1a7e0cd8/add.js";
 
 let WASM_VECTOR_LEN = 0;
 
-let cachedUint8Memory0 = new Uint8Array();
+let cachedUint8Memory0 = null;
 
 function getUint8Memory0() {
-  if (cachedUint8Memory0.byteLength === 0) {
+  if (cachedUint8Memory0 === null || cachedUint8Memory0.byteLength === 0) {
     cachedUint8Memory0 = new Uint8Array(wasm.memory.buffer);
   }
   return cachedUint8Memory0;
@@ -60,10 +60,10 @@ function passStringToWasm0(arg, malloc, realloc) {
   return ptr;
 }
 
-let cachedInt32Memory0 = new Int32Array();
+let cachedInt32Memory0 = null;
 
 function getInt32Memory0() {
-  if (cachedInt32Memory0.byteLength === 0) {
+  if (cachedInt32Memory0 === null || cachedInt32Memory0.byteLength === 0) {
     cachedInt32Memory0 = new Int32Array(wasm.memory.buffer);
   }
   return cachedInt32Memory0;
@@ -88,8 +88,8 @@ export function greet(name) {
     const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
     const ptr0 = passStringToWasm0(
       name,
-      wasm.__wbindgen_malloc,
-      wasm.__wbindgen_realloc,
+      wasm.__wbindgen_export_0,
+      wasm.__wbindgen_export_1,
     );
     const len0 = WASM_VECTOR_LEN;
     wasm.greet(retptr, ptr0, len0);
@@ -98,7 +98,7 @@ export function greet(name) {
     return getStringFromWasm0(r0, r1);
   } finally {
     wasm.__wbindgen_add_to_stack_pointer(16);
-    wasm.__wbindgen_free(r0, r1);
+    wasm.__wbindgen_export_2(r0, r1);
   }
 }
 
@@ -189,13 +189,13 @@ async function instantiateModule(opts) {
   const decompress = opts.decompress;
   const isFile = wasmUrl.protocol === "file:";
 
-  // make file urls work with dnt
+  // make file urls work in Node via dnt
   const isNode = globalThis.process?.versions?.node != null;
   if (isNode && isFile) {
     // the deno global will be shimmed by dnt
-    const wasmCode = await Deno.readFile(wasm_url);
+    const wasmCode = await Deno.readFile(wasmUrl);
     return WebAssembly.instantiate(
-      transform ? transform(wasmCode) : wasmCode,
+      decompress ? decompress(wasmCode) : wasmCode,
       imports,
     );
   }

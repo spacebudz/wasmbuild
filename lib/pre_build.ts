@@ -5,6 +5,7 @@ import { base64, colors, path, Sha1, writeAll } from "./deps.ts";
 import { getCargoWorkspace, WasmCrate } from "./manifest.ts";
 import { verifyVersions } from "./versions.ts";
 import { BindgenOutput, generateBindgen } from "./bindgen.ts";
+import {runWasmOpt} from "./wasmopt.ts";
 export type { BindgenOutput } from "./bindgen.ts";
 
 export interface PreBuildOutput {
@@ -75,6 +76,13 @@ export async function runPreBuild(
     Deno.exit(1);
   }
 
+  if (args.isOpt) {
+    await optimizeWasmFile(path.join(
+      workspace.metadata.target_directory,
+      `wasm32-unknown-unknown/${args.profile}/${crate.libName}.wasm`,
+    ));
+  }
+
   console.log(`  ${colors.bold(colors.gray("Running wasm-bindgen..."))}`);
   const bindgenOutput = await generateBindgen(
     crate.libName,
@@ -103,6 +111,23 @@ export async function runPreBuild(
     sourceHash,
     wasmFileName: args.isSync ? undefined : getWasmFileNameFromCrate(crate),
   };
+
+  async function optimizeWasmFile(wasmFilePath: string) {
+    console.log(wasmFilePath);
+    try {
+      console.log(
+        `${colors.bold(colors.green("Optimizing"))} .wasm file...`,
+      );
+      await runWasmOpt(wasmFilePath);
+    } catch (err) {
+      console.error(
+        `${colors.bold(colors.red("Error"))} ` +
+          `running wasm-opt failed. Maybe skip with --skip-opt?\n\n${err}`,
+      );
+      Deno.exit(1);
+    }
+  }
+
 }
 
 async function getBindingJsOutput(
@@ -232,7 +257,9 @@ export function isInstantiated() {
 }
 
 function instantiateInstance() {
-  const wasmBytes = base64decode("test");
+  const wasmBytes = base64decode("${
+    base64.encode(new Uint8Array(bindgenOutput.wasmBytes))
+  }");
   const wasmModule = new WebAssembly.Module(wasmBytes);
   return new WebAssembly.Instance(wasmModule, imports);
 }
