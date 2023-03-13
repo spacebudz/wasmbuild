@@ -2,8 +2,13 @@
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
 // source-hash: 32adb27ffd08ee307b367a58fb1cfe05fd2395c4
-const require = globalThis.require || globalThis.createRequire
-  ? globalThis.createRequire(import.meta.url)
+const require = /* #__PURE__ */ globalThis?.process?.versions?.node
+  ? await (async () => {
+    const { createRequire } = await import(
+      /* webpackIgnore: true */ "https://deno.land/std@0.177.0/node/module.ts"
+    );
+    return createRequire(import.meta.url);
+  })()
   : null;
 let wasm;
 

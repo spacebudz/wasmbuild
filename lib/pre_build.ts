@@ -149,7 +149,7 @@ async function getBindingJsOutput(
   );
   const bodyText = await getFormattedText(`
 // source-hash: ${sourceHash}
-const require = globalThis.require || globalThis.createRequire ? globalThis.createRequire(import.meta.url) : null;
+const require = /* #__PURE__ */ globalThis?.process?.versions?.node ? await (async () => {const { createRequire } = await import(/* webpackIgnore: true */ "https://deno.land/std@0.177.0/node/module.ts");return createRequire(import.meta.url);})() : null;
 let wasm;
 ${genText.includes("let cachedInt32Memory0") ? "" : "let cachedInt32Memory0;"}
 ${genText.includes("let cachedUint8Memory0") ? "" : "let cachedUint8Memory0;"}
