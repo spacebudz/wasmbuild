@@ -88,8 +88,8 @@ export function greet(name) {
     const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
     const ptr0 = passStringToWasm0(
       name,
-      wasm.__wbindgen_export_0,
-      wasm.__wbindgen_export_1,
+      wasm.__wbindgen_malloc,
+      wasm.__wbindgen_realloc,
     );
     const len0 = WASM_VECTOR_LEN;
     wasm.greet(retptr, ptr0, len0);
@@ -98,7 +98,7 @@ export function greet(name) {
     return getStringFromWasm0(r0, r1);
   } finally {
     wasm.__wbindgen_add_to_stack_pointer(16);
-    wasm.__wbindgen_export_2(r0, r1);
+    wasm.__wbindgen_free(r0, r1);
   }
 }
 

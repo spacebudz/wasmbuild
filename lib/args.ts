@@ -16,6 +16,7 @@ export interface CommonBuild {
   isSync: boolean;
   isOpt: boolean;
   cargoFlags: string[];
+  isMinify: boolean;
 }
 
 export interface BuildCommand extends CommonBuild {
@@ -60,6 +61,7 @@ export function parseArgs(rawArgs: string[]): Command {
       outDir: flags.out ?? "./lib",
       bindingJsFileExt: flags["js-ext"] ?? `js`,
       cargoFlags: getCargoFlags(),
+      isMinify: flags.minify ?? false,
     };
   }
 

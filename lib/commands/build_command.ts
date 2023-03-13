@@ -1,21 +1,19 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 import { BuildCommand } from "../args.ts";
-import { colors, emptyDir, ensureDir, path } from "../deps.ts";
+import { colors, emptyDir, esbuild, path } from "../deps.ts";
 import { runPreBuild } from "../pre_build.ts";
 
 export async function runBuildCommand(args: BuildCommand) {
   const output = await runPreBuild(args);
 
-  await ensureDir(args.outDir);
   await writeSnippets();
 
   console.log(`  write ${colors.yellow(output.bindingJsPath)}`);
   await Deno.writeTextFile(output.bindingJsPath, output.bindingJsText);
-
-  if (output.wasmFileName != null) {
-    const wasmDest = path.join(args.outDir, output.wasmFileName);
-    await Deno.writeFile(wasmDest, new Uint8Array(output.bindgen.wasmBytes));
+  if (args.isMinify) {
+    console.log(`  minify ${colors.yellow(output.bindingJsPath)}`);
+    await minify();
   }
 
   console.log(
@@ -54,5 +52,15 @@ export async function runBuildCommand(args: BuildCommand) {
         await Deno.writeTextFile(filePath, text);
       }
     }
+  }
+
+  async function minify() {
+    await esbuild.build({
+      entryPoints: [output.bindingJsPath],
+      outfile: output.bindingJsPath,
+      minify: true,
+      allowOverwrite: true,
+    });
+    esbuild.stop();
   }
 }

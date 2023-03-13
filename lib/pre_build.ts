@@ -1,11 +1,11 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 import { BuildCommand, CheckCommand } from "./args.ts";
-import { base64, colors, path, Sha1, writeAll } from "./deps.ts";
+import { base64, colors, ensureDir, path, Sha1, writeAll } from "./deps.ts";
 import { getCargoWorkspace, WasmCrate } from "./manifest.ts";
 import { verifyVersions } from "./versions.ts";
 import { BindgenOutput, generateBindgen } from "./bindgen.ts";
-import {runWasmOpt} from "./wasmopt.ts";
+import { runWasmOpt } from "./wasmopt.ts";
 export type { BindgenOutput } from "./bindgen.ts";
 
 export interface PreBuildOutput {
@@ -76,13 +76,6 @@ export async function runPreBuild(
     Deno.exit(1);
   }
 
-  if (args.isOpt) {
-    await optimizeWasmFile(path.join(
-      workspace.metadata.target_directory,
-      `wasm32-unknown-unknown/${args.profile}/${crate.libName}.wasm`,
-    ));
-  }
-
   console.log(`  ${colors.bold(colors.gray("Running wasm-bindgen..."))}`);
   const bindgenOutput = await generateBindgen(
     crate.libName,
@@ -95,6 +88,18 @@ export async function runPreBuild(
   console.log(
     `${colors.bold(colors.green("Generating"))} lib JS bindings...`,
   );
+
+  const wasmFileName = getWasmFileNameFromCrate(crate);
+
+  await ensureDir(args.outDir);
+
+  if (args.isOpt) {
+    const wasmDest = path.join(args.outDir, wasmFileName);
+    await Deno.writeFile(wasmDest, new Uint8Array(bindgenOutput.wasmBytes));
+    await optimizeWasmFile(wasmDest);
+    bindgenOutput.wasmBytes = await Deno.readFile(wasmDest);
+    if (args.isSync) Deno.run({ cmd: ["rm", wasmDest] });
+  }
 
   const { bindingJsText, sourceHash } = await getBindingJsOutput(
     args,
@@ -109,7 +114,7 @@ export async function runPreBuild(
     bindingJsText,
     bindingJsPath: path.join(args.outDir, bindingJsFileName),
     sourceHash,
-    wasmFileName: args.isSync ? undefined : getWasmFileNameFromCrate(crate),
+    wasmFileName,
   };
 
   async function optimizeWasmFile(wasmFilePath: string) {
@@ -127,7 +132,6 @@ export async function runPreBuild(
       Deno.exit(1);
     }
   }
-
 }
 
 async function getBindingJsOutput(
