@@ -362,7 +362,8 @@ export function isInstantiated() {
  * @param {InstantiateOptions} opts
  */
 async function instantiateModule(opts) {
-  const wasmUrl = opts.url ?? new URL("${
+  // Temporary exception for fresh framework
+  const wasmUrl = import.meta.url.includes("_frsh") ? opts.url : new URL("${
     getWasmFileNameFromCrate(crate)
   }", import.meta.url);
   const decompress = opts.decompress;
