@@ -2,22 +2,6 @@
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
 // source-hash: 32adb27ffd08ee307b367a58fb1cfe05fd2395c4
-const require = /* #__PURE__ */ globalThis?.process?.versions?.node
-  ? await (async () => {
-    const { createRequire } = await import(
-      /* webpackIgnore: true */ "https://deno.land/std@0.177.0/node/module.ts"
-    );
-    return createRequire(import.meta.url);
-  })()
-  : null;
-if (globalThis?.process?.versions?.node && typeof btoa === "undefined") {
-  globalThis.btoa = function (str) {
-    return Buffer.from(str, "binary").toString("base64");
-  };
-  globalThis.atob = function (b64Encoded) {
-    return Buffer.from(b64Encoded, "base64").toString("binary");
-  };
-}
 let wasm;
 
 import { add } from "./snippets/deno_test-0783d0dd1a7e0cd8/add.js";
