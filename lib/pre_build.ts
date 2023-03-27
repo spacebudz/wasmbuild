@@ -376,6 +376,7 @@ async function instantiateModule(opts) {
   }
 
   switch (wasmUrl.protocol) {
+    case "": // relative URL
     case "file:":
     case "https:":
     case "http:": {
