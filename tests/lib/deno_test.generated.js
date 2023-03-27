@@ -211,7 +211,9 @@ async function instantiateModule(opts) {
   // make file urls work in Node via dnt
   const isNode = globalThis.process?.versions?.node != null;
   if (isNode && isFile) {
-    const fs = await import("https://deno.land/std@0.180.0/fs/mod.ts");
+    const fs = await import(
+      /* webpackIgnore: true */ "https://deno.land/std@0.180.0/fs/mod.ts"
+    );
     const wasmCode = fs.readFileSync(wasmUrl);
     return WebAssembly.instantiate(
       decompress ? decompress(wasmCode) : wasmCode,
