@@ -121,7 +121,7 @@ module.exports.__wbg_add_b9e10ce4d6e25f61 = function (arg0, arg1) {
   return ret;
 };
 
-const path = require("path").join(__dirname, "deno_test_bg.wasm");
+const path = require("path").join(__dirname, "../deno_test_bg.wasm");
 const bytes = require("fs").readFileSync(path);
 
 const wasmModule = new WebAssembly.Module(bytes);

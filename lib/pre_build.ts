@@ -177,6 +177,7 @@ async function getBindingJsOutputNodejs(
 // deno-lint-ignore-file
 // deno-fmt-ignore-file`;
   const genText = bindgenOutput.js.replace(
+    getWasmFileNameFromCrate(crate),
     `../${getWasmFileNameFromCrate(crate)}`,
   );
   const bodyText = await getFormattedText(`
