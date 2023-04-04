@@ -134,7 +134,7 @@ export async function runPreBuild(
       bindgenOutputNodejs,
     );
   const bindingJsFileNameNodejs =
-    `${crate.libName}.generated_nodejs.${args.bindingJsFileExt}`;
+    `${crate.libName}.generated.${args.bindingJsFileExt}`;
 
   return {
     bindgen: bindgenOutput,
@@ -145,7 +145,7 @@ export async function runPreBuild(
     nodejs: {
       bindgen: bindgenOutputNodejs,
       bindingJsText: bindingJsTextNodejs,
-      bindingJsPath: path.join(args.outDir, bindingJsFileNameNodejs),
+      bindingJsPath: path.join(args.outDir, "nodejs", bindingJsFileNameNodejs),
       sourceHash: sourceHashNodejs,
     },
   };
@@ -168,7 +168,7 @@ export async function runPreBuild(
 }
 
 async function getBindingJsOutputNodejs(
-  args: CheckCommand | BuildCommand,
+  _args: CheckCommand | BuildCommand,
   crate: WasmCrate,
   bindgenOutput: BindgenOutput,
 ) {
@@ -176,7 +176,9 @@ async function getBindingJsOutputNodejs(
   const header = `// @generated file from wasmbuild -- do not edit
 // deno-lint-ignore-file
 // deno-fmt-ignore-file`;
-  const genText = bindgenOutput.js;
+  const genText = bindgenOutput.js.replace(
+    `../${getWasmFileNameFromCrate(crate)}`,
+  );
   const bodyText = await getFormattedText(`
 // source-hash: ${sourceHash}
 ${genText.includes("let cachedInt32Memory0") ? "" : "let cachedInt32Memory0;"}
