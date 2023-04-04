@@ -4,7 +4,11 @@ import { BuildCommand, CheckCommand } from "./args.ts";
 import { base64, colors, ensureDir, path, Sha1, writeAll } from "./deps.ts";
 import { getCargoWorkspace, WasmCrate } from "./manifest.ts";
 import { verifyVersions } from "./versions.ts";
-import { BindgenOutput, generateBindgen } from "./bindgen.ts";
+import {
+  BindgenOutput,
+  generateBindgen,
+  generateBindgenNodejs,
+} from "./bindgen.ts";
 import { runWasmOpt } from "./wasmopt.ts";
 export type { BindgenOutput } from "./bindgen.ts";
 
@@ -14,6 +18,12 @@ export interface PreBuildOutput {
   bindingJsPath: string;
   sourceHash: string;
   wasmFileName: string | undefined;
+  nodejs: {
+    bindgen: BindgenOutput;
+    bindingJsText: string;
+    bindingJsPath: string;
+    sourceHash: string;
+  };
 }
 
 export async function runPreBuild(
@@ -85,6 +95,14 @@ export async function runPreBuild(
     ),
   );
 
+  const bindgenOutputNodejs = await generateBindgenNodejs(
+    crate.libName,
+    path.join(
+      workspace.metadata.target_directory,
+      `wasm32-unknown-unknown/${args.profile}/${crate.libName}.wasm`,
+    ),
+  );
+
   console.log(
     `${colors.bold(colors.green("Generating"))} lib JS bindings...`,
   );
@@ -109,12 +127,27 @@ export async function runPreBuild(
   const bindingJsFileName =
     `${crate.libName}.generated.${args.bindingJsFileExt}`;
 
+  const { bindingJsTextNodejs, sourceHashNodejs } =
+    await getBindingJsOutputNodejs(
+      args,
+      crate,
+      bindgenOutputNodejs,
+    );
+  const bindingJsFileNameNodejs =
+    `${crate.libName}.generated_nodejs.${args.bindingJsFileExt}`;
+
   return {
     bindgen: bindgenOutput,
     bindingJsText,
     bindingJsPath: path.join(args.outDir, bindingJsFileName),
     sourceHash,
     wasmFileName,
+    nodejs: {
+      bindgen: bindgenOutputNodejs,
+      bindingJsText: bindingJsTextNodejs,
+      bindingJsPath: path.join(args.outDir, bindingJsFileNameNodejs),
+      sourceHash: sourceHashNodejs,
+    },
   };
 
   async function optimizeWasmFile(wasmFilePath: string) {
@@ -131,6 +164,76 @@ export async function runPreBuild(
       );
       Deno.exit(1);
     }
+  }
+}
+
+async function getBindingJsOutputNodejs(
+  args: CheckCommand | BuildCommand,
+  crate: WasmCrate,
+  bindgenOutput: BindgenOutput,
+) {
+  const sourceHash = await getHash();
+  const header = `// @generated file from wasmbuild -- do not edit
+// deno-lint-ignore-file
+// deno-fmt-ignore-file`;
+  const genText = bindgenOutput.js;
+  const bodyText = await getFormattedText(`
+// source-hash: ${sourceHash}
+${genText.includes("let cachedInt32Memory0") ? "" : "let cachedInt32Memory0;"}
+${genText.includes("let cachedUint8Memory0") ? "" : "let cachedUint8Memory0;"}
+${genText}
+`);
+
+  return {
+    bindingJsTextNodejs: `${header}\n${bodyText}`,
+    sourceHashNodejs: sourceHash,
+  };
+
+  async function getFormattedText(inputText: string) {
+    const denoFmtCmdArgs = [
+      Deno.execPath(),
+      "fmt",
+      "--quiet",
+      "--ext",
+      "js",
+      "-",
+    ];
+    console.log(`  ${colors.bold(colors.gray(denoFmtCmdArgs.join(" ")))}`);
+    const denoFmtCmd = Deno.run({
+      cmd: denoFmtCmdArgs,
+      stdin: "piped",
+      stdout: "piped",
+    });
+    await writeAll(denoFmtCmd.stdin, new TextEncoder().encode(inputText));
+    denoFmtCmd.stdin.close();
+    const [output, status] = await Promise.all([
+      denoFmtCmd.output(),
+      denoFmtCmd.status(),
+    ]);
+    if (!status.success) {
+      console.error("deno fmt command failed");
+      Deno.exit(1);
+    }
+    return new TextDecoder().decode(output);
+  }
+
+  async function getHash() {
+    // Create a hash of all the sources, snippets, and local modules
+    // in order to tell when the output has changed.
+    const hasher = new Sha1();
+    const sourceHash = await crate.getSourcesHash();
+    hasher.update(sourceHash);
+    for (const [identifier, list] of Object.entries(bindgenOutput.snippets)) {
+      hasher.update(identifier);
+      for (const text of list) {
+        hasher.update(text.replace(/\r?\n/g, "\n"));
+      }
+    }
+    for (const [name, text] of Object.entries(bindgenOutput.localModules)) {
+      hasher.update(name);
+      hasher.update(text.replace(/\r?\n/g, "\n"));
+    }
+    return hasher.hex();
   }
 }
 

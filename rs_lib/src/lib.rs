@@ -38,3 +38,30 @@ fn inner(name: &str, wasm_bytes: Vec<u8>) -> Result<Output> {
     wasm_bytes: x.wasm_mut().emit_wasm(),
   })
 }
+
+#[wasm_bindgen]
+pub fn generate_bindgen_nodejs(
+  name: &str,
+  wasm_bytes: Vec<u8>,
+) -> Result<JsValue, JsValue> {
+  let output = inner_nodejs(name, wasm_bytes)
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  let output = serde_wasm_bindgen::to_value(&output)
+    .map_err(|err| JsValue::from(js_sys::Error::new(&err.to_string())))?;
+  Ok(output)
+}
+
+fn inner_nodejs(name: &str, wasm_bytes: Vec<u8>) -> Result<Output> {
+  let mut x = wasm_bindgen_cli_support::Bindgen::new()
+    .nodejs(true)?
+    .weak_refs(true)
+    .input_bytes(name, wasm_bytes)
+    .generate_output()?;
+
+  Ok(Output {
+    js: x.js().to_string(),
+    snippets: x.snippets().clone(),
+    local_modules: x.local_modules().clone(),
+    wasm_bytes: x.wasm_mut().emit_wasm(),
+  })
+}

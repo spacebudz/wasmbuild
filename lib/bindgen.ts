@@ -23,6 +23,15 @@ export async function generateBindgen(libName: string, filePath: string) {
   ) as BindgenOutput;
 }
 
+export async function generateBindgenNodejs(libName: string, filePath: string) {
+  const originalWasmBytes = await Deno.readFile(filePath);
+  const { generate_bindgen_nodejs } = await instantiate();
+  return await generate_bindgen_nodejs(
+    libName,
+    originalWasmBytes,
+  ) as BindgenOutput;
+}
+
 async function generateForSelfBuild(filePath: string): Promise<BindgenOutput> {
   // When upgrading wasm-bindgen within wasmbuild, we can't rely on
   // using the .wasm file because it will be out of date and not build,

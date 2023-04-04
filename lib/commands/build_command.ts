@@ -11,6 +11,10 @@ export async function runBuildCommand(args: BuildCommand) {
 
   console.log(`  write ${colors.yellow(output.bindingJsPath)}`);
   await Deno.writeTextFile(output.bindingJsPath, output.bindingJsText);
+  if (!args.isSync) {
+  console.log(`  write ${colors.yellow(output.nodejs.bindingJsPath)}`);
+  await Deno.writeTextFile(output.nodejs.bindingJsPath, output.nodejs.bindingJsText);
+  }
   if (args.isMinify) {
     console.log(`  minify ${colors.yellow(output.bindingJsPath)}`);
     await minify();
