@@ -2,6 +2,9 @@
 // deno-lint-ignore-file
 // deno-fmt-ignore-file
 // source-hash: 32adb27ffd08ee307b367a58fb1cfe05fd2395c4
+
+import Module from "node:module";
+const module = new Module();
 let wasm;
 
 import { add } from "./snippets/deno_test-0783d0dd1a7e0cd8/add.js";

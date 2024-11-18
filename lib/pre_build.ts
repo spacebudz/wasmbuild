@@ -278,6 +278,9 @@ async function getBindingJsOutput(
   );
   const bodyText = await getFormattedText(`
 // source-hash: ${sourceHash}
+
+import Module from "node:module";
+const module = new Module();
 let wasm;
 ${genText.includes("let cachedInt32Memory0") ? "" : "let cachedInt32Memory0;"}
 ${genText.includes("let cachedUint8Memory0") ? "" : "let cachedUint8Memory0;"}
