@@ -41,20 +41,17 @@ async function generateForSelfBuild(filePath: string): Promise<BindgenOutput> {
   try {
     // note: ensure you have run `cargo install -f wasm-bindgen-cli` to upgrade
     // to the latest version
-    const p = Deno.run({
-      cmd: [
-        "wasm-bindgen",
-        "--target",
-        "deno",
-        "--out-dir",
-        tempPath,
-        filePath,
-      ],
+    const command = new Deno.Command("wasm-bindgen", {
+      args: ["--target", "deno", "--out-dir", tempPath, filePath],
     });
-    const status = await p.status();
+
+    const process = command.spawn();
+    const status = await process.status;
+
     if (!status.success) {
       throw new Error("Failed.");
     }
+
     const wasmBytes = await Deno.readFile(
       path.join(tempPath, "wasmbuild_bg.wasm"),
     );

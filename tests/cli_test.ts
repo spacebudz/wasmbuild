@@ -39,12 +39,14 @@ Deno.test("should add values", async () => {
   }
 
   async function runCommand(...args: string[]) {
-    const p = Deno.run({
-      cmd: args,
-      cwd: tempDir,
+    const command = new Deno.Command(args[0], {
+      args: args.slice(1), // Pass additional arguments
+      cwd: tempDir, // Set the current working directory
     });
-    const status = await p.status();
-    p.close();
+
+    const process = command.spawn();
+    const status = await process.status; // Wait for the process to finish
+
     if (!status.success) {
       throw new Error("FAILED");
     }

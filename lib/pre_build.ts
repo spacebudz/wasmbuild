@@ -1,7 +1,7 @@
 // Copyright 2018-2022 the Deno authors. All rights reserved. MIT license.
 
 import { BuildCommand, CheckCommand } from "./args.ts";
-import { base64, colors, ensureDir, path, Sha1, writeAll } from "./deps.ts";
+import { base64, colors, ensureDir, path, Sha1 } from "./deps.ts";
 import { getCargoWorkspace, WasmCrate } from "./manifest.ts";
 import { verifyVersions } from "./versions.ts";
 import {
@@ -42,12 +42,18 @@ export async function runPreBuild(
     } wasm32-unknown-unknown target installed...`,
   );
 
-  const rustupAddWasm = Deno.run({
-    cmd: ["rustup", "target", "add", "wasm32-unknown-unknown"],
-  }).status();
-  if (!(await rustupAddWasm).success) {
-    console.error(`adding wasm32-unknown-unknown target failed`);
-    Deno.exit(1);
+  {
+    const command = new Deno.Command("rustup", {
+      args: ["target", "add", "wasm32-unknown-unknown"],
+    });
+
+    const process = command.spawn();
+    const status = await process.status;
+
+    if (!status.success) {
+      console.error(`Adding wasm32-unknown-unknown target failed`);
+      Deno.exit(1);
+    }
   }
 
   console.log(
@@ -72,18 +78,24 @@ export async function runPreBuild(
   const RUSTFLAGS = Deno.env.get("RUSTFLAGS") ||
     "" + `--remap-path-prefix=${root}=. --remap-path-prefix=${home}=~`;
   console.log(`  ${colors.bold(colors.gray(cargoBuildCmd.join(" ")))}`);
-  const cargoBuildReleaseCmdStatus = Deno.run({
-    cmd: cargoBuildCmd,
-    env: {
-      "SOURCE_DATE_EPOCH": "1600000000",
-      "TZ": "UTC",
-      "LC_ALL": "C",
-      RUSTFLAGS,
-    },
-  }).status();
-  if (!(await cargoBuildReleaseCmdStatus).success) {
-    console.error(`cargo build failed`);
-    Deno.exit(1);
+  {
+    const command = new Deno.Command(cargoBuildCmd[0], {
+      args: cargoBuildCmd.slice(1), // Separate the command and arguments
+      env: {
+        "SOURCE_DATE_EPOCH": "1600000000",
+        "TZ": "UTC",
+        "LC_ALL": "C",
+        "RUSTFLAGS": RUSTFLAGS, // Ensure RUSTFLAGS is a string or properly defined
+      },
+    });
+
+    const process = command.spawn();
+    const status = await process.status;
+
+    if (!status.success) {
+      console.error(`cargo build failed`);
+      Deno.exit(1);
+    }
   }
 
   console.log(`  ${colors.bold(colors.gray("Running wasm-bindgen..."))}`);
@@ -115,8 +127,12 @@ export async function runPreBuild(
     const wasmDest = path.join(args.outDir, wasmFileName);
     await Deno.writeFile(wasmDest, new Uint8Array(bindgenOutput.wasmBytes));
     await optimizeWasmFile(wasmDest);
+    // deno-lint-ignore ban-ts-comment
+    //@ts-ignore
     bindgenOutput.wasmBytes = await Deno.readFile(wasmDest);
-    if (args.isSync) Deno.run({ cmd: ["rm", wasmDest] });
+    if (args.isSync) {
+      await new Deno.Command("rm", { args: [wasmDest] }).output();
+    }
   }
 
   const { bindingJsText, sourceHash } = await getBindingJsOutput(
@@ -202,21 +218,28 @@ ${genText}
       "-",
     ];
     console.log(`  ${colors.bold(colors.gray(denoFmtCmdArgs.join(" ")))}`);
-    const denoFmtCmd = Deno.run({
-      cmd: denoFmtCmdArgs,
+    const command = new Deno.Command(denoFmtCmdArgs[0], {
+      args: denoFmtCmdArgs.slice(1),
       stdin: "piped",
       stdout: "piped",
     });
-    await writeAll(denoFmtCmd.stdin, new TextEncoder().encode(inputText));
-    denoFmtCmd.stdin.close();
+
+    const process = command.spawn();
+
+    const writer = process.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(inputText));
+    await writer.close();
+
     const [output, status] = await Promise.all([
-      denoFmtCmd.output(),
-      denoFmtCmd.status(),
+      (await process.output()).stdout,
+      process.status,
     ]);
+
     if (!status.success) {
       console.error("deno fmt command failed");
       Deno.exit(1);
     }
+
     return new TextDecoder().decode(output);
   }
 
@@ -276,17 +299,23 @@ ${genText}
       "-",
     ];
     console.log(`  ${colors.bold(colors.gray(denoFmtCmdArgs.join(" ")))}`);
-    const denoFmtCmd = Deno.run({
-      cmd: denoFmtCmdArgs,
+    const command = new Deno.Command(denoFmtCmdArgs[0], {
+      args: denoFmtCmdArgs.slice(1),
       stdin: "piped",
       stdout: "piped",
     });
-    await writeAll(denoFmtCmd.stdin, new TextEncoder().encode(inputText));
-    denoFmtCmd.stdin.close();
+
+    const process = command.spawn();
+
+    const writer = process.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(inputText));
+    await writer.close();
+
     const [output, status] = await Promise.all([
-      denoFmtCmd.output(),
-      denoFmtCmd.status(),
+      (await process.output()).stdout,
+      process.status,
     ]);
+
     if (!status.success) {
       console.error("deno fmt command failed");
       Deno.exit(1);
@@ -474,7 +503,7 @@ async function instantiateModule(opts) {
   const isFile = wasmUrl.protocol === "file:";
 
   // make file urls work in Node via dnt
-  const isNode = globalThis.process?.versions?.node != null;
+  const isNode = globalThis.process?.versions?.node != null && typeof Deno === "undefined";
   if (isNode && isFile) {
     // requires fs to be set externally on globalThis
     const wasmCode = fs.readFileSync(wasmUrl);
